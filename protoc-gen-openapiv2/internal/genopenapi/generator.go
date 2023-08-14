@@ -306,8 +306,8 @@ func encodeOpenAPI(file *wrapper, format Format, preserveRPCOrder bool) (*descri
 	}, nil
 }
 
-// Converts an openapiSwaggerObject's paths from unordered to ordered by extracting ordered paths
-// from the pathsOrderPreserved field.
+// Creates an anonymous struct with the same data as the openapiSwaggerObject, but with
+// paths ordered.
 func (so openapiSwaggerObject) convertToPathOrderPreserved() interface{} {
 	return struct {
 		Swagger             string                              `json:"swagger" yaml:"swagger"`

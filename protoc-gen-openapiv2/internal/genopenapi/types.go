@@ -109,7 +109,9 @@ type openapiPathsObject map[string]openapiPathItemObject
 // When preserveRPCOrder is true, paths will be stored here as opposed to the openapiPathsObject.
 // This is because, when encoding to YAML/JSON, this data structure will ensure the order of
 // emitted paths mirror that of RPC methods found in proto files, where as openapiPathsObject won't.
-type openapiPathsObjectOrderPreserved []struct {
+type openapiPathsObjectOrderPreserved []orderPreservedPathData
+
+type orderPreservedPathData struct {
 	path           string
 	pathItemObject openapiPathItemObject
 }

@@ -8919,7 +8919,7 @@ func TestRenderServicesOpenapiPathsOrderPreserved(t *testing.T) {
 
 	orderPreservedPaths, err := GetOrderPreservedPaths(result)
 	if err != nil {
-		t.Fatalf("failed to obtain extension paths: %v", err)
+		t.Fatalf("failed to obtain9 extension paths: %v", err)
 	}
 
 	firstRPCPath := file.Services[0].Methods[0].Bindings[0].PathTmpl.Template
