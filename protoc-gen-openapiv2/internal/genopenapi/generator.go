@@ -68,6 +68,7 @@ func mergeTargetFile(targets []*wrapper, mergeFileName string) *wrapper {
 				mergedTarget.swagger.SecurityDefinitions[k] = v
 			}
 			mergedTarget.swagger.Security = append(mergedTarget.swagger.Security, f.swagger.Security...)
+			mergedTarget.swagger.pathsOrderPreserved = append(mergedTarget.swagger.pathsOrderPreserved, f.swagger.pathsOrderPreserved...)
 		}
 	}
 	return mergedTarget
@@ -273,24 +274,22 @@ func extensionMarshalJSON(so interface{}, extensions []extension) ([]byte, error
 // encodeOpenAPI converts OpenAPI file obj to pluginpb.CodeGeneratorResponse_File
 func encodeOpenAPI(file *wrapper, format Format, preserveRPCOrder bool) (*descriptor.ResponseFile, error) {
 	var fileContent string
+	var contentBuf bytes.Buffer
 	var fileToEncode interface{}
 
-	var contentBuf bytes.Buffer
-	enc, err := format.NewEncoder(&contentBuf)
-	if err != nil {
-		return nil, err
-	}
-
 	if preserveRPCOrder {
-		fileToEncode = file.swagger.convertToPathOrderPreserved()
+		fileToEncode = file.swagger.createPathOrderPreserved()
 	} else {
 		fileToEncode = file.swagger
 	}
 
+	enc, err := format.NewEncoder(&contentBuf)
+	if err != nil {
+		return nil, err
+	}
 	if err := enc.Encode(fileToEncode); err != nil {
 		return nil, err
 	}
-
 	fileContent = contentBuf.String()
 
 	name := file.fileName
@@ -306,9 +305,9 @@ func encodeOpenAPI(file *wrapper, format Format, preserveRPCOrder bool) (*descri
 	}, nil
 }
 
-// Creates an anonymous struct with the same data as the openapiSwaggerObject, but with
-// paths ordered.
-func (so openapiSwaggerObject) convertToPathOrderPreserved() interface{} {
+// Creates an anonymous struct with the same data as openapiSwaggerObject, but with
+// path order preserved.
+func (so openapiSwaggerObject) createPathOrderPreserved() interface{} {
 	return struct {
 		Swagger             string                              `json:"swagger" yaml:"swagger"`
 		Info                openapiInfoObject                   `json:"info" yaml:"info"`

@@ -112,8 +112,8 @@ type openapiPathsObject map[string]openapiPathItemObject
 type openapiPathsObjectOrderPreserved []orderPreservedPathData
 
 type orderPreservedPathData struct {
-	path           string
-	pathItemObject openapiPathItemObject
+	Path           string
+	PathItemObject openapiPathItemObject
 }
 
 // http://swagger.io/specification/#pathItemObject

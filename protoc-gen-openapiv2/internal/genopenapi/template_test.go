@@ -9387,7 +9387,7 @@ func GetOrderPreservedPaths(req *openapiSwaggerObject) ([]string, error) {
 	orderPreservedPaths := []string{}
 
 	for _, pathObject := range paths {
-		orderPreservedPaths = append(orderPreservedPaths, pathObject.path)
+		orderPreservedPaths = append(orderPreservedPaths, pathObject.Path)
 	}
 
 	return orderPreservedPaths, nil

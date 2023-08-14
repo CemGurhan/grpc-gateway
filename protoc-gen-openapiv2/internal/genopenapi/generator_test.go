@@ -1,6 +1,7 @@
 package genopenapi_test
 
 import (
+	"encoding/json"
 	"sort"
 	"strings"
 	"testing"
@@ -278,17 +279,6 @@ func TestGenerateRPCOrderPreserved(t *testing.T) {
 				label: LABEL_OPTIONAL
 				type: TYPE_STRING
 				json_name: "bar"
-				options: {
-					[grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field]: {
-						description: "This is bar"
-						extensions: {
-							key: "x-go-default"
-							value: {
-								string_value: "0.5s"
-							}
-						}
-					}
-				}
 			}
 		}
 		service: {
@@ -356,11 +346,16 @@ func TestGenerateRPCOrderPreserved(t *testing.T) {
 			contentsSlice := strings.Fields(content)
 			expectedPaths := []string{"/b/first", "/a/second", "/c/third"}
 
+			var data map[interface{}]interface{}
+			json.Unmarshal([]byte(content), &data)
+
 			paths := []string{}
 			for _, contentValue := range contentsSlice {
-				if isExpectedPath(expectedPaths, contentValue) {
-					paths = append(paths, contentValue)
-				}
+				findExpectedPaths(&paths, expectedPaths, contentValue)
+			}
+			expectedPathsSet := toStringSet(expectedPaths)
+			if missingPath, allPresent := allExpectedPathsPresent(expectedPathsSet, paths); !allPresent {
+				t.Fatalf("Path %s missing from these expected paths: %#v", missingPath, expectedPaths)
 			}
 
 			if !isValidPathOrder(expectedPaths, paths) {
@@ -388,17 +383,6 @@ func TestGenerateRPCOrderNotPreserved(t *testing.T) {
 				label: LABEL_OPTIONAL
 				type: TYPE_STRING
 				json_name: "bar"
-				options: {
-					[grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field]: {
-						description: "This is bar"
-						extensions: {
-							key: "x-go-default"
-							value: {
-								string_value: "0.5s"
-							}
-						}
-					}
-				}
 			}
 		}
 		service: {
@@ -467,9 +451,11 @@ func TestGenerateRPCOrderNotPreserved(t *testing.T) {
 
 			paths := []string{}
 			for _, contentValue := range contentsSlice {
-				if isExpectedPath(expectedPaths, contentValue) {
-					paths = append(paths, contentValue)
-				}
+				findExpectedPaths(&paths, expectedPaths, contentValue)
+			}
+			expectedPathsSet := toStringSet(expectedPaths)
+			if missingPath, allPresent := allExpectedPathsPresent(expectedPathsSet, paths); !allPresent {
+				t.Fatalf("Path %s missing from these expected paths: %#v", missingPath, expectedPaths)
 			}
 
 			if !isValidPathOrder(expectedPaths, paths) {
@@ -497,17 +483,6 @@ func TestGenerateRPCOrderPreservedMultipleServices(t *testing.T) {
 				label: LABEL_OPTIONAL
 				type: TYPE_STRING
 				json_name: "bar"
-				options: {
-					[grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field]: {
-						description: "This is bar"
-						extensions: {
-							key: "x-go-default"
-							value: {
-								string_value: "0.5s"
-							}
-						}
-					}
-				}
 			}
 		}
 		service: {
@@ -607,12 +582,14 @@ func TestGenerateRPCOrderPreservedMultipleServices(t *testing.T) {
 
 			contentsSlice := strings.Fields(content)
 			expectedPaths := []string{"/d/first", "/e/second", "/c/third", "/b/first", "/a/second", "/g/third"}
-			paths := []string{}
 
+			paths := []string{}
 			for _, contentValue := range contentsSlice {
-				if isExpectedPath(expectedPaths, contentValue) {
-					paths = append(paths, contentValue)
-				}
+				findExpectedPaths(&paths, expectedPaths, contentValue)
+			}
+			expectedPathsSet := toStringSet(expectedPaths)
+			if missingPath, allPresent := allExpectedPathsPresent(expectedPathsSet, paths); !allPresent {
+				t.Fatalf("Path %s missing from these expected paths: %#v", missingPath, expectedPaths)
 			}
 
 			if !isValidPathOrder(expectedPaths, paths) {
@@ -639,17 +616,6 @@ func TestGenerateRPCOrderNotPreservedMultipleServices(t *testing.T) {
 				label: LABEL_OPTIONAL
 				type: TYPE_STRING
 				json_name: "bar"
-				options: {
-					[grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field]: {
-						description: "This is bar"
-						extensions: {
-							key: "x-go-default"
-							value: {
-								string_value: "0.5s"
-							}
-						}
-					}
-				}
 			}
 		}
 		service: {
@@ -750,12 +716,14 @@ func TestGenerateRPCOrderNotPreservedMultipleServices(t *testing.T) {
 			contentsSlice := strings.Fields(content)
 			expectedPaths := []string{"/d/first", "/e/second", "/c/third", "/b/first", "/a/second", "/g/third"}
 			sort.Strings(expectedPaths)
-			paths := []string{}
 
+			paths := []string{}
 			for _, contentValue := range contentsSlice {
-				if isExpectedPath(expectedPaths, contentValue) {
-					paths = append(paths, contentValue)
-				}
+				findExpectedPaths(&paths, expectedPaths, contentValue)
+			}
+			expectedPathsSet := toStringSet(expectedPaths)
+			if missingPath, allPresent := allExpectedPathsPresent(expectedPathsSet, paths); !allPresent {
+				t.Fatalf("Path %s missing from these expected paths: %#v", missingPath, expectedPaths)
 			}
 
 			if !isValidPathOrder(expectedPaths, paths) {
@@ -782,17 +750,6 @@ func TestGenerateRPCOrderPreservedMergeFiles(t *testing.T) {
 				label: LABEL_OPTIONAL
 				type: TYPE_STRING
 				json_name: "bar"
-				options: {
-					[grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field]: {
-						description: "This is bar"
-						extensions: {
-							key: "x-go-default"
-							value: {
-								string_value: "0.5s"
-							}
-						}
-					}
-				}
 			}
 		}
 		service: {
@@ -847,17 +804,6 @@ func TestGenerateRPCOrderPreservedMergeFiles(t *testing.T) {
 				label: LABEL_OPTIONAL
 				type: TYPE_STRING
 				json_name: "bar"
-				options: {
-					[grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field]: {
-						description: "This is bar"
-						extensions: {
-							key: "x-go-default"
-							value: {
-								string_value: "0.5s"
-							}
-						}
-					}
-				}
 			}
 		}
 		service: {
@@ -930,12 +876,14 @@ func TestGenerateRPCOrderPreservedMergeFiles(t *testing.T) {
 
 			contentsSlice := strings.Fields(content)
 			expectedPaths := []string{"/c/cpath", "/b/bpath", "/a/apath", "/f/fpath", "/e/epath", "/d/dpath"}
-			paths := []string{}
 
+			paths := []string{}
 			for _, contentValue := range contentsSlice {
-				if isExpectedPath(expectedPaths, contentValue) {
-					paths = append(paths, contentValue)
-				}
+				findExpectedPaths(&paths, expectedPaths, contentValue)
+			}
+			expectedPathsSet := toStringSet(expectedPaths)
+			if missingPath, allPresent := allExpectedPathsPresent(expectedPathsSet, paths); !allPresent {
+				t.Fatalf("Path %s missing from these expected paths: %#v", missingPath, expectedPaths)
 			}
 
 			if !isValidPathOrder(expectedPaths, paths) {
@@ -962,17 +910,6 @@ func TestGenerateRPCOrderNotPreservedMergeFiles(t *testing.T) {
 				label: LABEL_OPTIONAL
 				type: TYPE_STRING
 				json_name: "bar"
-				options: {
-					[grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field]: {
-						description: "This is bar"
-						extensions: {
-							key: "x-go-default"
-							value: {
-								string_value: "0.5s"
-							}
-						}
-					}
-				}
 			}
 		}
 		service: {
@@ -1027,17 +964,6 @@ func TestGenerateRPCOrderNotPreservedMergeFiles(t *testing.T) {
 				label: LABEL_OPTIONAL
 				type: TYPE_STRING
 				json_name: "bar"
-				options: {
-					[grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field]: {
-						description: "This is bar"
-						extensions: {
-							key: "x-go-default"
-							value: {
-								string_value: "0.5s"
-							}
-						}
-					}
-				}
 			}
 		}
 		service: {
@@ -1111,12 +1037,14 @@ func TestGenerateRPCOrderNotPreservedMergeFiles(t *testing.T) {
 			contentsSlice := strings.Fields(content)
 			expectedPaths := []string{"/c/cpath", "/b/bpath", "/a/apath", "/f/fpath", "/e/epath", "/d/dpath"}
 			sort.Strings(expectedPaths)
-			paths := []string{}
 
+			paths := []string{}
 			for _, contentValue := range contentsSlice {
-				if isExpectedPath(expectedPaths, contentValue) {
-					paths = append(paths, contentValue)
-				}
+				findExpectedPaths(&paths, expectedPaths, contentValue)
+			}
+			expectedPathsSet := toStringSet(expectedPaths)
+			if missingPath, allPresent := allExpectedPathsPresent(expectedPathsSet, paths); !allPresent {
+				t.Fatalf("Path %s missing from these expected paths: %#v", missingPath, expectedPaths)
 			}
 
 			if !isValidPathOrder(expectedPaths, paths) {
@@ -1143,17 +1071,6 @@ func TestGenerateRPCOrderPreservedAdditionalBindings(t *testing.T) {
 				label: LABEL_OPTIONAL
 				type: TYPE_STRING
 				json_name: "bar"
-				options: {
-					[grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field]: {
-						description: "This is bar"
-						extensions: {
-							key: "x-go-default"
-							value: {
-								string_value: "0.5s"
-							}
-						}
-					}
-				}
 			}
 		}
 		service: {
@@ -1229,12 +1146,14 @@ func TestGenerateRPCOrderPreservedAdditionalBindings(t *testing.T) {
 
 			contentsSlice := strings.Fields(content)
 			expectedPaths := []string{"/b/first", "/a/additional", "/a/second", "/z/zAdditional", "/c/third", "/b/bAdditional"}
-			paths := []string{}
 
+			paths := []string{}
 			for _, contentValue := range contentsSlice {
-				if isExpectedPath(expectedPaths, contentValue) {
-					paths = append(paths, contentValue)
-				}
+				findExpectedPaths(&paths, expectedPaths, contentValue)
+			}
+			expectedPathsSet := toStringSet(expectedPaths)
+			if missingPath, allPresent := allExpectedPathsPresent(expectedPathsSet, paths); !allPresent {
+				t.Fatalf("Path %s missing from these expected paths: %#v", missingPath, expectedPaths)
 			}
 
 			if !isValidPathOrder(expectedPaths, paths) {
@@ -1261,17 +1180,6 @@ func TestGenerateRPCOrderNotPreservedAdditionalBindings(t *testing.T) {
 				label: LABEL_OPTIONAL
 				type: TYPE_STRING
 				json_name: "bar"
-				options: {
-					[grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field]: {
-						description: "This is bar"
-						extensions: {
-							key: "x-go-default"
-							value: {
-								string_value: "0.5s"
-							}
-						}
-					}
-				}
 			}
 		}
 		service: {
@@ -1348,12 +1256,216 @@ func TestGenerateRPCOrderNotPreservedAdditionalBindings(t *testing.T) {
 			contentsSlice := strings.Fields(content)
 			expectedPaths := []string{"/b/first", "/a/additional", "/a/second", "/z/zAdditional", "/c/third", "/b/bAdditional"}
 			sort.Strings(expectedPaths)
-			paths := []string{}
 
+			paths := []string{}
 			for _, contentValue := range contentsSlice {
-				if isExpectedPath(expectedPaths, contentValue) {
-					paths = append(paths, contentValue)
+				findExpectedPaths(&paths, expectedPaths, contentValue)
+			}
+			expectedPathsSet := toStringSet(expectedPaths)
+			if missingPath, allPresent := allExpectedPathsPresent(expectedPathsSet, paths); !allPresent {
+				t.Fatalf("Path %s missing from these expected paths: %#v", missingPath, expectedPaths)
+			}
+
+			if !isValidPathOrder(expectedPaths, paths) {
+				t.Fatalf("Got path order: %#v, want path order: %#v", paths, expectedPaths)
+			}
+		})
+	}
+}
+
+func TestGenerateRPCOrderPreservedMergeFilesAdditionalBindingsMultipleServices(t *testing.T) {
+	t.Parallel()
+
+	const in1 = `
+	file_to_generate: "exampleproto/v1/example.proto"
+	parameter: "output_format=yaml,allow_delete_body=true"
+	proto_file: {
+		name: "exampleproto/v1/example.proto"
+		package: "example.v1"
+		message_type: {
+			name: "Foo"
+			field: {
+				name: "bar"
+				number: 1
+				label: LABEL_OPTIONAL
+				type: TYPE_STRING
+				json_name: "bar"
+			}
+		}
+		service: {
+			name: "TestServiceOne"
+			method: {
+				name: "Test1"
+				input_type: ".example.v1.Foo"
+				output_type: ".example.v1.Foo"
+				options: {
+					[google.api.http]: {
+						get: "/d/first"
+					}
 				}
+			}
+			method: {
+				name: "Test2"
+				input_type: ".example.v1.Foo"
+				output_type: ".example.v1.Foo"
+				options: {
+					[google.api.http]: {
+						get: "/e/second"
+					}
+				}
+			}
+			method: {
+				name: "Test3"
+				input_type: ".example.v1.Foo"
+				output_type: ".example.v1.Foo"
+				options: {
+					[google.api.http]: {
+						get: "/c/third"
+					}
+				}
+			}
+		}
+		service: {
+			name: "TestServiceTwo"
+			method: {
+				name: "Test1"
+				input_type: ".example.v1.Foo"
+				output_type: ".example.v1.Foo"
+				options: {
+					[google.api.http]: {
+						get: "/b/first"
+					}
+				}
+			}
+			method: {
+				name: "Test2"
+				input_type: ".example.v1.Foo"
+				output_type: ".example.v1.Foo"
+				options: {
+					[google.api.http]: {
+						get: "/a/second"
+					}
+				}
+			}
+			method: {
+				name: "Test3"
+				input_type: ".example.v1.Foo"
+				output_type: ".example.v1.Foo"
+				options: {
+					[google.api.http]: {
+						get: "/g/third"
+					}
+				}
+			}
+		}
+		options: {
+			go_package: "exampleproto/v1;exampleproto"
+		}
+	}`
+
+	const in2 = `
+	file_to_generate: "exampleproto/v2/example.proto"
+	parameter: "output_format=yaml,allow_delete_body=true"
+	proto_file: {
+		name: "exampleproto/v2/example.proto"
+		package: "example.v2"
+		message_type: {
+			name: "Foo"
+			field: {
+				name: "bar"
+				number: 1
+				label: LABEL_OPTIONAL
+				type: TYPE_STRING
+				json_name: "bar"
+			}
+		}
+		service: {
+			name: "TestService"
+			method: {
+				name: "Test1"
+				input_type: ".example.v2.Foo"
+				output_type: ".example.v2.Foo"
+				options: {
+					[google.api.http]: {
+						get: "/b/first"
+						additional_bindings {
+							get: "/a/additional"
+						}
+					}
+				}
+			}
+			method: {
+				name: "Test2"
+				input_type: ".example.v2.Foo"
+				output_type: ".example.v2.Foo"
+				options: {
+					[google.api.http]: {
+						get: "/a/second"
+						additional_bindings {
+							get: "/z/zAdditional"
+						}
+					}
+				}
+			}
+			method: {
+				name: "Test3"
+				input_type: ".example.v2.Foo"
+				output_type: ".example.v2.Foo"
+				options: {
+					[google.api.http]: {
+						get: "/c/third"
+						additional_bindings {
+							get: "/b/bAdditional"
+						}
+					}
+				}
+			}
+		}
+		options: {
+			go_package: "exampleproto/v2;exampleproto"
+		}
+	}`
+
+	var req1, req2 pluginpb.CodeGeneratorRequest
+
+	if err := prototext.Unmarshal([]byte(in1), &req1); err != nil {
+		t.Fatalf("failed to marshall yaml: %s", err)
+	}
+	if err := prototext.Unmarshal([]byte(in2), &req2); err != nil {
+		t.Fatalf("failed to marshall yaml: %s", err)
+	}
+
+	req1.ProtoFile = append(req1.ProtoFile, req2.ProtoFile...)
+	req1.FileToGenerate = append(req1.FileToGenerate, req2.FileToGenerate...)
+	formats := [...]genopenapi.Format{
+		genopenapi.FormatJSON,
+		genopenapi.FormatYAML,
+	}
+
+	for _, format := range formats {
+		format := format
+		t.Run(string(format), func(t *testing.T) {
+			t.Parallel()
+
+			resp := requireGenerate(t, &req1, format, true, true)
+			if len(resp) != 1 {
+				t.Fatalf("invalid count, expected: 1, actual: %d", len(resp))
+			}
+
+			content := resp[0].GetContent()
+
+			t.Log(content)
+
+			contentsSlice := strings.Fields(content)
+			expectedPaths := []string{"/c/cpath", "/b/bpath", "/a/apath", "/f/fpath", "/e/epath", "/d/dpath"}
+
+			paths := []string{}
+			for _, contentValue := range contentsSlice {
+				findExpectedPaths(&paths, expectedPaths, contentValue)
+			}
+			expectedPathsSet := toStringSet(expectedPaths)
+			if missingPath, allPresent := allExpectedPathsPresent(expectedPathsSet, paths); !allPresent {
+				t.Fatalf("Path %s missing from these expected paths: %#v", missingPath, expectedPaths)
 			}
 
 			if !isValidPathOrder(expectedPaths, paths) {
@@ -1364,8 +1476,8 @@ func TestGenerateRPCOrderNotPreservedAdditionalBindings(t *testing.T) {
 }
 
 func isValidPathOrder(expectedOrder []string, actualOrder []string) bool {
-	for i, path := range actualOrder {
-		if expectedOrder[i] != path {
+	for i, path := range expectedOrder {
+		if actualOrder[i] != path {
 			return false
 		}
 	}
@@ -1373,14 +1485,12 @@ func isValidPathOrder(expectedOrder []string, actualOrder []string) bool {
 	return true
 }
 
-func isExpectedPath(expectedPaths []string, potentialPath string) bool {
-	pathsSet := toStringSet(expectedPaths)
-
-	if _, isExpectedPath := pathsSet[potentialPath]; isExpectedPath {
-		return true
+func findExpectedPaths(foundPaths *[]string, expectedPaths []string, potentialPath string) {
+	for _, path := range expectedPaths {
+		if strings.Contains(potentialPath, path) {
+			*foundPaths = append(*foundPaths, path)
+		}
 	}
-
-	return false
 }
 
 func toStringSet(slice []string) map[string]struct{} {
@@ -1391,4 +1501,14 @@ func toStringSet(slice []string) map[string]struct{} {
 	}
 
 	return set
+}
+
+func allExpectedPathsPresent(expectedPathsSet map[string]struct{}, foundPaths []string) (string, bool) {
+	for _, path := range foundPaths {
+		if _, isPathPresent := expectedPathsSet[path]; !isPathPresent {
+			return path, false
+		}
+	}
+
+	return "", true
 }

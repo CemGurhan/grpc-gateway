@@ -1109,7 +1109,7 @@ func renderServiceTags(services []*descriptor.Service, reg *descriptor.Registry)
 	return tags
 }
 
-func renderServices(services []*descriptor.Service, paths openapiPathsObject, orderedPaths openapiPathsObjectOrderPreserved, reg *descriptor.Registry, requestResponseRefs, customRefs refMap, msgs []*descriptor.Message) error {
+func renderServices(services []*descriptor.Service, paths openapiPathsObject, orderedPaths *openapiPathsObjectOrderPreserved, reg *descriptor.Registry, requestResponseRefs, customRefs refMap, msgs []*descriptor.Message) error {
 	// Correctness of svcIdx and methIdx depends on 'services' containing the services in the same order as the 'file.Service' array.
 	svcBaseIdx := 0
 	var lastFile *descriptor.File = nil
@@ -1653,10 +1653,10 @@ func renderServices(services []*descriptor.Service, paths openapiPathsObject, or
 					pathItemObject.Options = operationObject
 				}
 				if reg.IsPreserveRPCOrder() {
-					orderedPaths = append(orderedPaths, struct {
-						path           string
-						pathItemObject openapiPathItemObject
-					}{})
+					*orderedPaths = append(*orderedPaths, orderPreservedPathData{
+						Path:           path,
+						PathItemObject: pathItemObject,
+					})
 				} else {
 					paths[path] = pathItemObject
 				}
@@ -1712,13 +1712,14 @@ func applyTemplate(p param) (*openapiSwaggerObject, error) {
 			Title:   *p.File.Name,
 			Version: "version not set",
 		},
+		pathsOrderPreserved: openapiPathsObjectOrderPreserved{},
 	}
 
 	// Loops through all the services and their exposed GET/POST/PUT/DELETE definitions
 	// and create entries for all of them.
 	// Also adds custom user specified references to second map.
 	requestResponseRefs, customRefs := refMap{}, refMap{}
-	if err := renderServices(p.Services, s.Paths, s.pathsOrderPreserved, p.reg, requestResponseRefs, customRefs, p.Messages); err != nil {
+	if err := renderServices(p.Services, s.Paths, &s.pathsOrderPreserved, p.reg, requestResponseRefs, customRefs, p.Messages); err != nil {
 		panic(err)
 	}
 
