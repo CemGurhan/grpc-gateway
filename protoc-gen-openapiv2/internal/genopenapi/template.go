@@ -1109,7 +1109,7 @@ func renderServiceTags(services []*descriptor.Service, reg *descriptor.Registry)
 	return tags
 }
 
-func renderServices(services []*descriptor.Service, paths openapiPathsObject, reg *descriptor.Registry, requestResponseRefs, customRefs refMap, msgs []*descriptor.Message) error {
+func renderServices(services []*descriptor.Service, paths openapiPathsObject, orderedPaths openapiPathsObjectOrderPreserved, reg *descriptor.Registry, requestResponseRefs, customRefs refMap, msgs []*descriptor.Message) error {
 	// Correctness of svcIdx and methIdx depends on 'services' containing the services in the same order as the 'file.Service' array.
 	svcBaseIdx := 0
 	var lastFile *descriptor.File = nil
@@ -1652,7 +1652,14 @@ func renderServices(services []*descriptor.Service, paths openapiPathsObject, re
 				case "OPTIONS":
 					pathItemObject.Options = operationObject
 				}
-				paths[path] = pathItemObject
+				if reg.IsPreserveRPCOrder() {
+					orderedPaths = append(orderedPaths, struct {
+						path           string
+						pathItemObject openapiPathItemObject
+					}{})
+				} else {
+					paths[path] = pathItemObject
+				}
 			}
 		}
 	}
@@ -1711,7 +1718,7 @@ func applyTemplate(p param) (*openapiSwaggerObject, error) {
 	// and create entries for all of them.
 	// Also adds custom user specified references to second map.
 	requestResponseRefs, customRefs := refMap{}, refMap{}
-	if err := renderServices(p.Services, s.Paths, p.reg, requestResponseRefs, customRefs, p.Messages); err != nil {
+	if err := renderServices(p.Services, s.Paths, s.pathsOrderPreserved, p.reg, requestResponseRefs, customRefs, p.Messages); err != nil {
 		panic(err)
 	}
 
