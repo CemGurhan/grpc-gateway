@@ -271,27 +271,75 @@ func extensionMarshalJSON(so interface{}, extensions []extension) ([]byte, error
 }
 
 // encodeOpenAPI converts OpenAPI file obj to pluginpb.CodeGeneratorResponse_File
-func encodeOpenAPI(file *wrapper, format Format) (*descriptor.ResponseFile, error) {
+func encodeOpenAPI(file *wrapper, format Format, preserveRPCOrder bool) (*descriptor.ResponseFile, error) {
+	var fileContent string
+	var fileToEncode interface{}
+
 	var contentBuf bytes.Buffer
 	enc, err := format.NewEncoder(&contentBuf)
 	if err != nil {
 		return nil, err
 	}
 
-	if err := enc.Encode(*file.swagger); err != nil {
+	if preserveRPCOrder {
+		fileToEncode = file.swagger.convertToPathOrderPreserved()
+	} else {
+		fileToEncode = file.swagger
+	}
+
+	if err := enc.Encode(fileToEncode); err != nil {
 		return nil, err
 	}
+
+	fileContent = contentBuf.String()
 
 	name := file.fileName
 	ext := filepath.Ext(name)
 	base := strings.TrimSuffix(name, ext)
 	output := fmt.Sprintf("%s.swagger."+string(format), base)
+
 	return &descriptor.ResponseFile{
 		CodeGeneratorResponse_File: &pluginpb.CodeGeneratorResponse_File{
 			Name:    proto.String(output),
-			Content: proto.String(contentBuf.String()),
+			Content: proto.String(fileContent),
 		},
 	}, nil
+}
+
+// Converts an openapiSwaggerObject's paths from unordered to ordered by extracting ordered paths
+// from the pathsOrderPreserved field.
+func (so openapiSwaggerObject) convertToPathOrderPreserved() interface{} {
+	return struct {
+		Swagger             string                              `json:"swagger" yaml:"swagger"`
+		Info                openapiInfoObject                   `json:"info" yaml:"info"`
+		Tags                []openapiTagObject                  `json:"tags,omitempty" yaml:"tags,omitempty"`
+		Host                string                              `json:"host,omitempty" yaml:"host,omitempty"`
+		BasePath            string                              `json:"basePath,omitempty" yaml:"basePath,omitempty"`
+		Schemes             []string                            `json:"schemes,omitempty" yaml:"schemes,omitempty"`
+		Consumes            []string                            `json:"consumes" yaml:"consumes"`
+		Produces            []string                            `json:"produces" yaml:"produces"`
+		Paths               openapiPathsObjectOrderPreserved    `json:"paths" yaml:"paths"`
+		Definitions         openapiDefinitionsObject            `json:"definitions" yaml:"definitions"`
+		SecurityDefinitions openapiSecurityDefinitionsObject    `json:"securityDefinitions,omitempty" yaml:"securityDefinitions,omitempty"`
+		Security            []openapiSecurityRequirementObject  `json:"security,omitempty" yaml:"security,omitempty"`
+		ExternalDocs        *openapiExternalDocumentationObject `json:"externalDocs,omitempty" yaml:"externalDocs,omitempty"`
+		extensions          []extension                         `json:"-" yaml:"-"`
+	}{
+		Swagger:             so.Swagger,
+		Info:                so.Info,
+		Tags:                so.Tags,
+		Host:                so.Host,
+		BasePath:            so.BasePath,
+		Schemes:             so.Schemes,
+		Consumes:            so.Consumes,
+		Produces:            so.Produces,
+		Paths:               so.pathsOrderPreserved,
+		Definitions:         so.Definitions,
+		SecurityDefinitions: so.SecurityDefinitions,
+		Security:            so.Security,
+		ExternalDocs:        so.ExternalDocs,
+		extensions:          so.extensions,
+	}
 }
 
 func (g *generator) Generate(targets []*descriptor.File) ([]*descriptor.ResponseFile, error) {
@@ -343,7 +391,7 @@ func (g *generator) Generate(targets []*descriptor.File) ([]*descriptor.Response
 
 	if g.reg.IsAllowMerge() {
 		targetOpenAPI := mergeTargetFile(openapis, g.reg.GetMergeFileName())
-		f, err := encodeOpenAPI(targetOpenAPI, g.format)
+		f, err := encodeOpenAPI(targetOpenAPI, g.format, g.reg.IsPreserveRPCOrder())
 		if err != nil {
 			return nil, fmt.Errorf("failed to encode OpenAPI for %s: %w", g.reg.GetMergeFileName(), err)
 		}
@@ -353,7 +401,7 @@ func (g *generator) Generate(targets []*descriptor.File) ([]*descriptor.Response
 		}
 	} else {
 		for _, file := range openapis {
-			f, err := encodeOpenAPI(file, g.format)
+			f, err := encodeOpenAPI(file, g.format, g.reg.IsPreserveRPCOrder())
 			if err != nil {
 				return nil, fmt.Errorf("failed to encode OpenAPI for %s: %w", file.fileName, err)
 			}
