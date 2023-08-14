@@ -76,7 +76,8 @@ type openapiSwaggerObject struct {
 	Security            []openapiSecurityRequirementObject  `json:"security,omitempty" yaml:"security,omitempty"`
 	ExternalDocs        *openapiExternalDocumentationObject `json:"externalDocs,omitempty" yaml:"externalDocs,omitempty"`
 
-	extensions []extension `json:"-" yaml:"-"`
+	pathsOrderPreserved openapiPathsObjectOrderPreserved `json:"-" yaml:"-"`
+	extensions          []extension                      `json:"-" yaml:"-"`
 }
 
 // http://swagger.io/specification/#securityDefinitionsObject
@@ -104,6 +105,14 @@ type openapiSecurityRequirementObject map[string][]string
 
 // http://swagger.io/specification/#pathsObject
 type openapiPathsObject map[string]openapiPathItemObject
+
+// When preserveRPCOrder is true, paths will be stored here as opposed to the openapiPathsObject.
+// This is because, when encoding to YAML/JSON, this data structure will ensure the order of
+// emitted paths mirror that of RPC methods found in proto files, where as openapiPathsObject won't.
+type openapiPathsObjectOrderPreserved []struct {
+	path           string
+	pathItemObject openapiPathItemObject
+}
 
 // http://swagger.io/specification/#pathItemObject
 type openapiPathItemObject struct {
